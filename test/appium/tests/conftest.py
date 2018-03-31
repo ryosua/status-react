@@ -1,5 +1,6 @@
 from tests import test_suite_data, SingleTestData
 import requests
+import re
 import pytest
 from datetime import datetime
 from os import environ
@@ -42,6 +43,18 @@ def pytest_addoption(parser):
                      action='store',
                      default=False,
                      help='boolean; For running extended test suite against nightly build')
+    parser.addoption('--messages_number',
+                     action='store',
+                     default=2,
+                     help='Messages number')
+    parser.addoption('--message_wait_time',
+                     action='store',
+                     default=20,
+                     help='Max time to wait for a message to be received')
+    parser.addoption('--connection_problem_wait_time',
+                     action='store',
+                     default=60,
+                     help="Max time to wait for a 'Messages connection problem' error disappears")
 
 
 def is_master(config):
@@ -116,4 +129,21 @@ def get_testrail_case_id(obj):
 
 
 def pytest_runtest_setup(item):
+    test_suite_data.add_test(SingleTestData(item.name))
     test_suite_data.add_test(SingleTestData(item.name, testrail_case_id=get_testrail_case_id(item)))
+
+
+@pytest.fixture
+def messages_number():
+    return int(pytest.config.getoption('messages_number'))
+
+
+@pytest.fixture
+def message_wait_time():
+    return int(pytest.config.getoption('message_wait_time'))
+
+
+@pytest.fixture
+def connection_problem_wait_time():
+    return int(pytest.config.getoption('connection_problem_wait_time'))
+
