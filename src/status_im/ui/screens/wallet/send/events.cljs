@@ -68,13 +68,16 @@
   (re-frame/dispatch [::transaction-completed {:id (name (key result)) :response (second result)} modal?]))
 ;;;; Handlers
 
+(defn set-and-validate-amount-db [db amount]
+  (let [{:keys [value error]} (wallet.db/parse-amount amount)]
+    (-> db
+        (assoc-in [:wallet :send-transaction :amount] (money/ether->wei value))
+        (assoc-in [:wallet :send-transaction :amount-error] error))))
+
 (handlers/register-handler-fx
  :wallet.send/set-and-validate-amount
  (fn [{:keys [db]} [_ amount]]
-   (let [{:keys [value error]} (wallet.db/parse-amount amount)]
-     {:db (-> db
-              (assoc-in [:wallet :send-transaction :amount] (money/ether->wei value))
-              (assoc-in [:wallet :send-transaction :amount-error] error))})))
+   {:db (set-and-validate-amount-db db amount)}))
 
 (handlers/register-handler-fx
  :wallet.send/set-symbol
@@ -348,8 +351,10 @@
 
 (handlers/register-handler-fx
  :close-transaction-sent-screen
- (fn [{:keys [db]} _]
-   {:dispatch (if (= :wallet-send-transaction (second (:navigation-stack db)))
-                [:navigate-to-clean :wallet]
-                [:navigate-back])
+ (fn [{:keys [db]} [_ chat-id]]
+   {:dispatch-n (condp = (second (:navigation-stack db))
+                  :wallet-send-transaction [[:navigate-to-clean :wallet]]
+                  :wallet-send-transaction-chat [[:execute-stored-command]
+                                                 [:navigate-to-chat chat-id]]
+                  [[:navigate-back]])
     :dispatch-later [{:ms 400 :dispatch [:check-transactions-queue]}]}))

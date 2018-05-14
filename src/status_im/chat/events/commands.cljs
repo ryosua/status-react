@@ -4,7 +4,8 @@
             [status-im.chat.models.message :as models.message]
             [status-im.utils.handlers :as handlers]
             [status-im.i18n :as i18n]
-            [status-im.utils.platform :as platform]))
+            [status-im.utils.platform :as platform]
+            [status-im.chat.events.shortcuts :as shortcuts]))
 
 ;;;; Helper fns
 
@@ -53,11 +54,17 @@
    (when proceed-event-creator
      {:dispatch (proceed-event-creator returned)})))
 
+(defn short-preview? [opts]
+  (= :short-preview (:data-type opts)))
+
 (handlers/register-handler-fx
  :request-command-message-data
  [re-frame/trim-v (re-frame/inject-cofx :data-store/get-local-storage-data)]
  (fn [{:keys [db]} [message opts]]
-   (request-command-message-data db message opts)))
+   (if (and (short-preview? opts)
+            (shortcuts/shortcut-override? message))
+     (shortcuts/shortcut-override-fx db message opts)
+     (request-command-message-data db message opts))))
 
 (handlers/register-handler-fx
  :execute-command-immediately
@@ -68,3 +75,11 @@
      {:dispatch [:request-permissions {:permissions [:read-external-storage]
                                        :on-allowed  #(re-frame/dispatch [:initialize-geth])}]}
      (log/debug "ignoring command: " command-name))))
+
+(handlers/register-handler-fx
+ :execute-stored-command
+ [re-frame/trim-v]
+ (fn [{:keys [db]} []]
+   (let [{:keys [message opts]} (:commands/stored-command db)]
+     (-> (request-command-message-data db message opts)
+         (dissoc db :commands/stored-command)))))
