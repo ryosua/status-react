@@ -2,6 +2,7 @@
   (:require [status-im.ui.components.styles :as styles]
             [status-im.utils.gfycat.core :as gfycat]
             [status-im.data-store.chats :as chats-store]
+            [status-im.utils.handlers-macro :as handlers-macro]
             [status-im.data-store.messages :as messages-store]))
 
 (defn set-chat-ui-props
@@ -60,21 +61,31 @@
                 :group-admin admin
                 :contacts    participants} cofx))
 
-(defn new-update? [{:keys [added-to-at removed-at removed-from-at]} timestamp]
-  (and (> timestamp added-to-at)
-       (> timestamp removed-at)
-       (> timestamp removed-from-at)))
+(defn clear-history [chat-id {:keys [db] :as cofx}]
+  (let [{:keys [messages
+                removed-at-clock-value]} (get-in db [:chats chat-id])
+        last-message-clock-value (or (->> messages
+                                          vals
+                                          (sort-by (comp unchecked-negate :clock-value))
+                                          first
+                                          :clock-value) removed-at-clock-value)]
+    (-> {:db db}
+        (assoc-in [:db :chats chat-id :messages] {})
+        (assoc-in [:db :chats chat-id :deleted-at-clock-value] last-message-clock-value)
+        (assoc :data-store/tx [(chats-store/clear-history-tx chat-id last-message-clock-value)
+                               (messages-store/delete-messages-tx chat-id)]))))
 
 (defn remove-chat [chat-id {:keys [db now] :as cofx}]
   (let [{:keys [chat-id group-chat debug?]} (get-in db [:chats chat-id])]
     (if debug?
-      (-> {:db db}
-          (update-in [:db :chats] dissoc chat-id)
-          (assoc :data-store/tx [(chats-store/delete-chat-tx chat-id)
-                                 (messages-store/delete-messages-tx chat-id)]))
-      (-> {:db db}
-          (assoc-in [:db :chats chat-id :is-active] false)
-          (assoc :data-store/tx [(chats-store/deactivate-chat-tx chat-id now)])))))
+      (handlers-macro/merge-fx cofx
+                               (update-in [:db :chats] dissoc chat-id)
+                               (assoc :data-store/tx [(chats-store/delete-chat-tx chat-id)
+                                                      (messages-store/delete-messages-tx chat-id)]))
+      (handlers-macro/merge-fx (assoc-in {:db db
+                                          :data-store/tx [(chats-store/deactivate-chat-tx chat-id now)]}
+                                         [:db :chats chat-id :is-active] false)
+                               (clear-history chat-id)))))
 
 (defn bot-only-chat? [db chat-id]
   (let [{:keys [group-chat contacts]} (get-in db [:chats chat-id])]

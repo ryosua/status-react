@@ -2,6 +2,7 @@
   (:require [re-frame.core :as re-frame]
             [status-im.i18n :as i18n]
             [status-im.chat.models.message :as models.message]
+            [status-im.chat.models :as models.chat]
             [status-im.ui.screens.navigation :as navigation]
             [status-im.transport.message.v1.group-chat :as group-chat]
             [status-im.transport.message.core :as transport]
@@ -62,9 +63,8 @@
 
 (handlers/register-handler-fx
  :clear-history
- (fn [{{:keys [current-chat-id] :as db} :db} _]
-   {:db            (assoc-in db [:chats current-chat-id :messages] {})
-    :data-store/tx [(messages-store/hide-messages-tx current-chat-id)]}))
+ (fn [{{:keys [current-chat-id]} :db :as cofx} _]
+   (models.chat/clear-history current-chat-id cofx)))
 
 (handlers/register-handler-fx
  :clear-history?

@@ -116,12 +116,18 @@
   (#{:group-user-message :public-group-user-message} message-type))
 
 (defn add-to-chat?
-  [{:keys [db]} {:keys [chat-id from message-id] :as message}]
+  [{:keys [db]} {:keys [chat-id
+                        clock-value
+                        from
+                        message-id] :as message}]
   (let [{:keys [chats current-public-key]} db
-        {:keys [messages not-loaded-message-ids]} (get chats chat-id)]
+        {:keys [deleted-at-clock-value
+                messages
+                not-loaded-message-ids]} (get chats chat-id)]
     (when (not= from current-public-key)
       (not (or (get messages message-id)
-               (get not-loaded-message-ids message-id))))))
+               (get not-loaded-message-ids message-id)
+               (>= deleted-at-clock-value clock-value))))))
 
 (defn message-seen-by? [message user-pk]
   (= :seen (get-in message [:user-statuses user-pk])))
