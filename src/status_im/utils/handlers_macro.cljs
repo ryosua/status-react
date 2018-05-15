@@ -3,9 +3,9 @@
   (:require [clojure.set :as set]))
 
 (defn update-db [cofx fx]
-  (if-let [db (:db fx)]
-    (assoc cofx :db db)
-    cofx))
+  (cond-> cofx
+    (:db fx) (assoc :db (:db fx))
+    (:data-store/tx fx) (assoc :data-store/tx (:data-store/tx fx))))
 
 (def ^:private tx-keys #{:data-store/tx :data-store/base-tx})
 

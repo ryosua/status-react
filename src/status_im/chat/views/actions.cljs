@@ -24,6 +24,7 @@
 
 (defn- chat-actions [chat-id]
   [(view-profile chat-id)
+   (clear-history)
    (delete-chat chat-id false)])
 
 (defn- group-chat-actions [chat-id]

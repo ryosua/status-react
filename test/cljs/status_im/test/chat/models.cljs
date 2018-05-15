@@ -100,3 +100,53 @@
       (is (:group-chat chat)))
     (testing "it does not sets the public flag"
       (is (:public? chat)))))
+
+(deftest clear-history-test
+  (let [chat-id "1"
+        cofx    {:db {:chats {chat-id {:messages {"1" {:clock-value 1}
+                                                  "2" {:clock-value 10}
+                                                  "3" {:clock-value 2}}}}}}]
+    (testing "it deletes all the messages"
+      (let [actual (chat/clear-history chat-id cofx)]
+        (is (= {} (get-in actual [:db :chats chat-id :messages])))))
+    (testing "it sets a deleted-at-clock-value equal to the last message clock-value"
+      (let [actual (chat/clear-history chat-id cofx)]
+        (is (= 10 (get-in actual [:db :chats chat-id :deleted-at-clock-value])))))
+    (testing "it does not override the deleted-at-clock-value when there are no messages"
+      (let [actual (chat/clear-history chat-id
+                                       (update-in cofx
+                                                  [:db :chats chat-id]
+                                                  assoc
+                                                  :messages {}
+                                                  :deleted-at-clock-value 100))]
+        (is (= 100 (get-in actual [:db :chats chat-id :deleted-at-clock-value])))))
+    (testing "it leaves the deleted-at-clock-value unchanged when no messages & no previous deleted-at-clock-value"
+      (let [actual (chat/clear-history chat-id
+                                       (update-in cofx
+                                                  [:db :chats chat-id]
+                                                  assoc
+                                                  :messages {}))]
+        (is (= nil (get-in actual [:db :chats chat-id :deleted-at-clock-value])))))
+    (testing "it adds the relevant transactions for realm"
+      (let [actual (chat/clear-history chat-id cofx)]
+        (is (:data-store/tx actual))
+        (is (= 2 (count (:data-store/tx actual))))))))
+
+(deftest remove-chat-test
+  (let [chat-id "1"
+        cofx    {:db {:chats {chat-id {:messages {"1" {:clock-value 1}
+                                                  "2" {:clock-value 10}
+                                                  "3" {:clock-value 2}}}}}}]
+    (testing "it deletes all the messages"
+      (let [actual (chat/remove-chat chat-id cofx)]
+        (is (= {} (get-in actual [:db :chats chat-id :messages])))))
+    (testing "it sets a deleted-at-clock-value equal to the last message clock-value"
+      (let [actual (chat/remove-chat chat-id cofx)]
+        (is (= 10 (get-in actual [:db :chats chat-id :deleted-at-clock-value])))))
+    (testing "it sets the chat as inactive"
+      (let [actual (chat/remove-chat chat-id cofx)]
+        (is (= false (get-in actual [:db :chats chat-id :is-active])))))
+    (testing "it adds the relevant transactions for realm"
+      (let [actual (chat/remove-chat chat-id cofx)]
+        (is (:data-store/tx actual))
+        (is (= 3 (count (:data-store/tx actual))))))))

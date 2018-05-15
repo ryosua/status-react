@@ -63,20 +63,21 @@
 
 (defn clear-history [chat-id {:keys [db] :as cofx}]
   (let [{:keys [messages
-                removed-at-clock-value]} (get-in db [:chats chat-id])
+                deleted-at-clock-value]} (get-in db [:chats chat-id])
         last-message-clock-value (or (->> messages
                                           vals
                                           (sort-by (comp unchecked-negate :clock-value))
                                           first
-                                          :clock-value) removed-at-clock-value)]
-    (-> {:db db}
+                                          :clock-value) deleted-at-clock-value)]
+    ;; Necessary until we adjust merge-fx to cater for :txs
+    (-> (select-keys cofx [:data-store/tx :db])
         (assoc-in [:db :chats chat-id :messages] {})
         (assoc-in [:db :chats chat-id :deleted-at-clock-value] last-message-clock-value)
-        (assoc :data-store/tx [(chats-store/clear-history-tx chat-id last-message-clock-value)
-                               (messages-store/delete-messages-tx chat-id)]))))
+        (update :data-store/tx concat [(chats-store/clear-history-tx chat-id last-message-clock-value)
+                                       (messages-store/delete-messages-tx chat-id)]))))
 
 (defn remove-chat [chat-id {:keys [db now] :as cofx}]
-  (let [{:keys [chat-id group-chat debug?]} (get-in db [:chats chat-id])]
+  (let [{:keys [debug?]} (get-in db [:chats chat-id])]
     (if debug?
       (handlers-macro/merge-fx cofx
                                (update-in [:db :chats] dissoc chat-id)
