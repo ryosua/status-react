@@ -105,10 +105,12 @@ class SignInView(BaseView):
         self.confirm_password_input.set_value(password)
         self.next_button.click()
         self.name_input.wait_for_element(45)
-        self.name_input.send_keys('user_%s' % get_current_time())
+        username = 'user_%s' % get_current_time()
+        self.name_input.send_keys(username)
         self.next_button.click()
         self.do_not_share.wait_for_element(10)
         self.do_not_share.click_until_presence_of_element(self.home_button)
+        return username
 
     def recover_access(self, passphrase, password):
         recover_access_view = self.i_have_account_button.click()

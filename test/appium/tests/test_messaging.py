@@ -1,6 +1,5 @@
 import random
 import string
-import pytest
 import emoji
 
 from tests.base_test_case import MultipleDeviceTestCase
@@ -149,30 +148,121 @@ class TestMessages(MultipleDeviceTestCase):
         users = []
         chat_name = ''.join(random.choice(string.ascii_lowercase) for _ in range(7))
         for sign_in in device_1, device_2:
-            sign_in.create_user()
+            users.append(sign_in.create_user())
             home = sign_in.get_home_view()
-            profile = home.profile_button.click()
-            users.append(profile.username_text.text)
-            profile.home_button.click()
             home.join_public_chat(chat_name)
         chat_1, chat_2 = device_1.get_chat_view(), device_2.get_chat_view()
 
-        messages_to_send_1 = ['/command', '%s %s' % (unicode_text_message, unicode_chinese), 'This is text message.']
-        for message in messages_to_send_1:
-            chat_1.chat_message_input.send_keys(message)
-            chat_1.send_message_button.click()
-        chat_2.wait_for_messages(users[0], messages_to_send_1, self.errors)
+        chat_1.chat_message_input.send_keys('/command')
+        chat_1.send_message_button.click()
 
         message_with_emoji = 'message with emoji'
-        messages_to_send_2 = [emoji.emojize(emoji_name), emoji.emojize('%s %s' % (message_with_emoji, emoji_name_1))]
-        messages_to_receive_2 = [emoji_unicode, '%s %s' % (message_with_emoji, emoji_unicode_1), message_with_new_line]
-        for message in messages_to_send_2:
-            chat_2.chat_message_input.send_keys(message)
-            chat_2.send_message_button.click()
+
+        chat_2.chat_message_input.send_keys(emoji.emojize(emoji_name))
+        chat_2.send_message_button.click()
+
+        chat_1.chat_message_input.send_keys('%s %s' % (unicode_text_message, unicode_chinese))
+        chat_1.send_message_button.click()
+
+        chat_2.chat_message_input.send_keys('%s %s' % (message_with_emoji, emoji_unicode_1))
+        chat_2.send_message_button.click()
+
+        chat_1.chat_message_input.send_keys('This is text message.')
+        chat_1.send_message_button.click()
+
         chat_2.chat_message_input.click()
         chat_2.send_as_keyevent(message_with_new_line)
         chat_2.send_message_button.click()
-        chat_1.wait_for_messages(users[1], messages_to_receive_2, self.errors)
+
+        messages_from_user_2 = [emoji_unicode, '%s %s' % (message_with_emoji, emoji_unicode_1), message_with_new_line]
+        chat_1.wait_for_messages_from_user(users[1], messages_from_user_2, self.errors)
+
+        messages_from_user_1 = ['/command', '%s %s' % (unicode_text_message, unicode_chinese), 'This is text message.']
+        chat_2.wait_for_messages_from_user(users[0], messages_from_user_1, self.errors)
+
         for chat in chat_1, chat_2:
             chat.delete_chat(chat_name, self.errors)
+        self.verify_no_errors()
+
+
+@marks.all
+@marks.chat
+class TestOfflineMessages(MultipleDeviceTestCase):
+
+    @marks.pr
+    @marks.testrail_case_id(3420)
+    def test_offline_messaging_1_1_chat(self):
+        self.create_drivers(2)
+        device_1, device_2 = self.drivers[0], self.drivers[1]
+        sign_in_1, sign_in_2 = SignInView(device_1), SignInView(device_2)
+        username_1 = sign_in_1.create_user()
+        sign_in_2.create_user()
+        home_1, home_2 = sign_in_1.get_home_view(), sign_in_2.get_home_view()
+        device_2_public_key = home_2.get_public_key()
+        home_1.add_contact(device_2_public_key)
+        chat_1 = home_1.get_chat_view()
+        profile_2 = home_2.get_profile_view()
+        profile_2.logout()
+        device_2.set_network_connection(1)  # airplane mode
+
+        message_text = 'test message'
+        chat_1.chat_message_input.send_keys(message_text)
+        chat_1.send_message_button.click()
+
+        sign_in_2.click_account_by_position(0)
+        sign_in_2.sign_in('qwerty1234')
+        sign_in_2.home_button.wait_for_visibility_of_element()
+
+        if not home_2.offline_label.is_element_displayed():
+            self.errors.append('Offline label is not shown on Home view while being offline')
+        chat_2 = home_2.get_chat_with_user(username_1).click()
+        if not chat_2.offline_label.is_element_displayed():
+            self.errors.append('Offline label is not shown on Chat view while being offline')
+        device_2.set_network_connection(2)  # turning on WiFi connection
+        chat_2.wait_for_message_in_one_to_one_chat(message_text, self.errors, wait_time=120)
+        self.verify_no_errors()
+
+    @marks.pr
+    @marks.testrail_case_id(3430)
+    def test_offline_messaging_group_chat(self):
+        self.create_drivers(2)
+        device_1, device_2 = self.drivers[0], self.drivers[1]
+        sign_in_1, sign_in_2 = SignInView(device_1), SignInView(device_2)
+        username_1 = sign_in_1.create_user()
+        username_2 = sign_in_2.create_user()
+        home_1, home_2 = sign_in_1.get_home_view(), sign_in_2.get_home_view()
+
+        device_2_public_key = home_2.get_public_key()
+        home_1.add_contact(device_2_public_key)
+        home_1.get_back_to_home_view()
+
+        home_2.home_button.click()
+        chat_view_2 = home_2.get_chat_with_user(username_1).click()
+        chat_view_2.add_to_contacts.click()
+        chat_view_2.get_back_to_home_view()
+
+        chat_name = 'a_chat_%s' % get_current_time()
+        home_1.create_group_chat([username_2], chat_name)
+        chat_1 = home_1.get_chat_view()
+
+        chat_element_2 = home_2.get_chat_with_user(chat_name)
+        chat_element_2.wait_for_visibility_of_element()
+        device_2.set_network_connection(1)  # airplane mode
+
+        if not home_2.offline_label.is_element_displayed():
+            self.errors.append('Offline label is not shown on Home view while being offline')
+        chat_2 = chat_element_2.click()
+        if not chat_2.offline_label.is_element_displayed():
+            self.errors.append('Offline label is not shown on Chat view while being offline')
+
+        message_text = 'test message'
+        chat_1.chat_message_input.send_keys(message_text)
+        chat_1.send_message_button.click()
+
+        chat_1.get_back_to_home_view()
+        profile_1 = home_1.profile_button.click()
+        profile_1.logout()
+
+        device_2.set_network_connection(2)  # turning on WiFi connection
+        chat_2.wait_for_messages(username_1, message_text, self.errors, wait_time=120)
         self.verify_no_errors()

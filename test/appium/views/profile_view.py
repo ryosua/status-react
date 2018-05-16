@@ -84,7 +84,7 @@ class LogoutDialog(BaseView):
     class LogoutButton(BaseButton):
         def __init__(self, driver):
             super(LogoutDialog.LogoutButton, self).__init__(driver)
-            self.locator = self.Locator.text_selector('LOG OUT')
+            self.locator = self.Locator.xpath_selector("//*[@text='LOG OUT' or @text='Log out']")
 
         def navigate(self):
             from views.sign_in_view import SignInView

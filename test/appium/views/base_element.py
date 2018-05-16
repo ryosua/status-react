@@ -33,7 +33,6 @@ class BaseElement(object):
         def text_part_selector(locator, text):
             return BaseElement.Locator.xpath_selector('//*[contains(@text, "' + text + '")]')
 
-
         def __str__(self, *args, **kwargs):
             return "%s:%s" % (self.by, self.value)
 
@@ -121,6 +120,13 @@ class BaseElement(object):
 
     def is_element_image_equals_template(self):
         return not ImageChops.difference(self.image, self.template).getbbox()
+
+    def swipe_element(self):
+        element = self.find_element()
+        location, size = element.location, element.size
+        x, y = location['x'], location['y']
+        width, height = size['width'], size['height']
+        self.driver.swipe(start_x=x + width / 2, start_y=y + height / 2, end_x=x, end_y=y + height / 2)
 
 
 class BaseEditBox(BaseElement):

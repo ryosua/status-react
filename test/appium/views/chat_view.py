@@ -1,7 +1,7 @@
 import time
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from tests import info
-from views.base_element import BaseButton, BaseEditBox, BaseText, BaseElement
+from views.base_element import BaseButton, BaseEditBox, BaseText
 from views.base_view import BaseView
 
 
@@ -103,7 +103,13 @@ class MessageByUsername(BaseText):
     def __init__(self, driver, username):
         super(MessageByUsername, self).__init__(driver)
         self.locator = self.Locator.xpath_selector(
-            '//*[@text="%s"]/following-sibling::android.widget.TextView' % username)
+            "//*[@content-desc='chat-item']/*[@text='%s']/../android.view.ViewGroup[2]/*[1]" % username)
+
+    @property
+    def text(self):
+        text = self.text.rsplit(sep=' ', maxsplit=2)[0]
+        info('%s is %s' % (self.name, text))
+        return text
 
 
 class MoreUsersButton(BaseButton):
@@ -167,7 +173,6 @@ class ChatView(BaseView):
         self.faucet_command = FaucetCommand(self.driver)
         self.faucet_send_command = FaucetSendCommand(self.driver)
 
-
         self.chat_options = ChatMenuButton(self.driver)
         self.members_button = MembersButton(self.driver)
         self.delete_chat_button = DeleteChatButton(self.driver)
@@ -195,24 +200,35 @@ class ChatView(BaseView):
             except TimeoutException:
                 break
 
-    def wait_for_message_in_one_to_one_chat(self, expected_message: str, errors: list):
+    def wait_for_message_in_one_to_one_chat(self, expected_message: str, errors: list, wait_time: int = 20):
         try:
-            self.wait_for_element_starts_with_text(expected_message, wait_time=20)
+            self.wait_for_element_starts_with_text(expected_message, wait_time=wait_time)
         except TimeoutException:
             errors.append('Message with text "%s" was not received' % expected_message)
 
-    def wait_for_messages_by_user(self, username: str, expected_messages: list, errors: list, wait_time: int = 30):
+    def wait_for_messages_from_user(self, username: str, expected_messages: list, errors: list, wait_time: int = 30):
         expected_messages = expected_messages if type(expected_messages) == list else [expected_messages]
         repeat = 0
-        while repeat <= wait_time:
-            received_messages = [element.text for element in MessageByUsername(self.driver, username).find_elements()]
-            if not set(expected_messages) - set(received_messages):
-                break
+        while repeat <= wait_time and expected_messages:
+            try:
+                elements = MessageByUsername(self.driver, username).find_elements()
+                for element in elements:
+                    expected_messages.remove(element.text)
+            except (NoSuchElementException, ValueError):
+                pass
             time.sleep(3)
             repeat += 3
-        if set(expected_messages) - set(received_messages):
-            errors.append('Not received messages from user %s: "%s"' % (username, ', '.join(
-                [i for i in list(set(expected_messages) - set(received_messages))])))
+        if not expected_messages:
+            return
+        not_received_at_all = expected_messages.copy()
+        for message in not_received_at_all:
+            if self.element_starts_with_text(message, 'text').is_element_present(1):
+                not_received_at_all.remove(message)
+        if not_received_at_all:
+            errors.append("Messages '%s' from user '%s' not received at all" % (', '.join(not_received_at_all),
+                          username))
+        errors.append("Messages '%s' from user '%s' were received but with not expected sender name" % (
+            ', '.join([i for i in set(expected_messages) - set(not_received_at_all)]), username))
 
     def wait_for_messages(self, username: str, expected_messages: list, errors: list, wait_time: int = 30):
         expected_messages = expected_messages if type(expected_messages) == list else [expected_messages]
