@@ -60,16 +60,3 @@
    {:db            (assoc-in db [:chats current-chat-id :name] new-chat-name)
     :data-store/tx [(chats-store/save-chat-tx {:chat-id current-chat-id
                                                :name    new-chat-name})]}))
-
-(handlers/register-handler-fx
- :clear-history
- (fn [{{:keys [current-chat-id]} :db :as cofx} _]
-   (models.chat/clear-history current-chat-id cofx)))
-
-(handlers/register-handler-fx
- :clear-history?
- (fn [_ _]
-   {:show-confirmation {:title               (i18n/label :t/clear-history-confirmation)
-                        :content             (i18n/label :t/clear-group-history-confirmation)
-                        :confirm-button-text (i18n/label :t/clear)
-                        :on-accept           #(re-frame/dispatch [:clear-history])}}))

@@ -134,7 +134,8 @@
 
 (deftest remove-chat-test
   (let [chat-id "1"
-        cofx    {:db {:chats {chat-id {:messages {"1" {:clock-value 1}
+        cofx    {:db {:transport/chats {chat-id {}}
+                      :chats {chat-id {:messages {"1" {:clock-value 1}
                                                   "2" {:clock-value 10}
                                                   "3" {:clock-value 2}}}}}}]
     (testing "it deletes all the messages"
@@ -146,7 +147,52 @@
     (testing "it sets the chat as inactive"
       (let [actual (chat/remove-chat chat-id cofx)]
         (is (= false (get-in actual [:db :chats chat-id :is-active])))))
+    (testing "it removes it from transport if it's a public chat"
+      (let [actual (chat/remove-chat chat-id
+                                     (update-in
+                                              cofx
+                                              [:db :chats chat-id]
+                                              assoc
+                                              :group-chat true
+                                              :public? true))]
+        (is (not (get-in actual [:db :transport/chats chat-id])))))
+    (testing "it sends a leave group request if it's a group-chat"
+      (let [actual (chat/remove-chat chat-id
+                                     (assoc-in
+                                              cofx
+                                              [:db :chats chat-id :group-chat]
+                                              true))]
+        (is (:shh/post  actual))
+        (testing "it does not remove transport, only after send is successful"
+          (is (get-in actual [:db :transport/chats chat-id])))))
+    (testing "it does not remove it from transport if it's a one-to-one"
+      (let [actual (chat/remove-chat chat-id cofx)]
+        (is (get-in actual [:db :transport/chats chat-id]))))
     (testing "it adds the relevant transactions for realm"
       (let [actual (chat/remove-chat chat-id cofx)]
         (is (:data-store/tx actual))
-        (is (= 3 (count (:data-store/tx actual))))))))
+        (is (= 4 (count (:data-store/tx actual))))))))
+
+(deftest multi-user-chat?
+  (let [chat-id "1"]
+    (testing "it returns true if it's a group chat"
+      (let [cofx {:db {:chats {chat-id {:group-chat true}}}}]
+        (is (chat/multi-user-chat? chat-id cofx))))
+    (testing "it returns true if it's a public chat"
+      (let [cofx {:db {:chats {chat-id {:public? true :group-chat true}}}}]
+        (is (chat/multi-user-chat? chat-id cofx))))
+    (testing "it returns false if it's a 1-to-1 chat"
+      (let [cofx {:db {:chats {chat-id {}}}}]
+        (is (not (chat/multi-user-chat? chat-id cofx)))))))
+
+(deftest group-chat?
+  (let [chat-id "1"]
+    (testing "it returns true if it's a group chat"
+      (let [cofx {:db {:chats {chat-id {:group-chat true}}}}]
+        (is (chat/group-chat? chat-id cofx))))
+    (testing "it returns false if it's a public chat"
+      (let [cofx {:db {:chats {chat-id {:public? true :group-chat true}}}}]
+        (is (not (chat/group-chat? chat-id cofx)))))
+    (testing "it returns false if it's a 1-to-1 chat"
+      (let [cofx {:db {:chats {chat-id {}}}}]
+        (is (not (chat/group-chat? chat-id cofx)))))))
