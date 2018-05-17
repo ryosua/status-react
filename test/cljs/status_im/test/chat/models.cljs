@@ -171,7 +171,7 @@
     (testing "it adds the relevant transactions for realm"
       (let [actual (chat/remove-chat chat-id cofx)]
         (is (:data-store/tx actual))
-        (is (= 4 (count (:data-store/tx actual))))))))
+        (is (= 3 (count (:data-store/tx actual))))))))
 
 (deftest multi-user-chat?
   (let [chat-id "1"]

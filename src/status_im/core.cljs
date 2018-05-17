@@ -3,7 +3,7 @@
             [status-im.ui.components.react :as react]
             [reagent.core :as reagent]
             [status-im.native-module.core :as status]
-            status-im.transport_implementation
+            status-im.transport.receive-impl
             [taoensso.timbre :as log]
             [status-im.utils.config :as config]
             [status-im.react-native.js-dependencies :as js-dependencies]
