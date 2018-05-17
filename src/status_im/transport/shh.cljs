@@ -143,8 +143,8 @@
 (re-frame/reg-fx
  :shh/add-new-sym-keys
  (fn [args]
-   (doseq [key args]
-     (add-new-sym-key key))))
+   (doseq [add-new-sym-key-params args]
+     (add-new-sym-key add-new-sym-key-params))))
 
 (re-frame/reg-fx
  :shh/get-new-sym-keys
