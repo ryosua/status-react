@@ -47,10 +47,6 @@
                       (update-in [:chats chat-id :unviewed-messages] (fnil conj #{}) message-id))
      :data-store/tx [(messages-store/save-message-tx prepared-message)]}))
 
-(defn- prepare-chat [chat-id {:keys [db now] :as cofx}]
-  (chat-model/upsert-chat {:chat-id chat-id
-                           :timestamp now} cofx))
-
 (defn- send-message-seen [chat-id message-id send-seen? cofx]
   (when send-seen?
     (transport/send (protocol/map->MessagesSeen {:message-ids #{message-id}}) chat-id cofx)))

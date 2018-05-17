@@ -1,7 +1,7 @@
 (ns status-im.chat.models
   (:require [status-im.ui.components.styles :as styles]
             [status-im.utils.gfycat.core :as gfycat]
-            [status-im.transport.core :as transport]
+            [status-im.transport.utils :as transport.utils]
             [status-im.transport.message.core :as transport.message]
             [status-im.data-store.chats :as chats-store]
             [status-im.transport.message.v1.group-chat :as transport.group-chat]
@@ -90,7 +90,7 @@
   ;; if this is private group chat, we have to broadcast leave and unsubscribe after that
   (if (group-chat? chat-id cofx)
     (transport.message/send (transport.group-chat/GroupLeave.) chat-id cofx)
-    (transport/unsubscribe-from-chat chat-id cofx)))
+    (transport.utils/unsubscribe-from-chat chat-id cofx)))
 
 (defn- deactivate-chat [chat-id {:keys [db now] :as cofx}]
   (assoc-in {:db db
@@ -99,9 +99,8 @@
 
 (defn remove-chat [chat-id {:keys [db now] :as cofx}]
   (letfn [(remove-transport-fx [chat-id cofx]
-            (if (multi-user-chat? chat-id cofx)
-              (remove-transport chat-id cofx)
-              cofx))]
+            (when (multi-user-chat? chat-id cofx)
+              (remove-transport chat-id cofx)))]
     (handlers-macro/merge-fx cofx
       (remove-transport-fx chat-id)
       (deactivate-chat chat-id)

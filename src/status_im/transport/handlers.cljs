@@ -99,7 +99,7 @@
  :group/unsubscribe-from-chat
  [re-frame/trim-v]
  (fn [cofx [chat-id]]
-   (transport/unsubscribe-from-chat chat-id cofx)))
+   (transport.utils/unsubscribe-from-chat chat-id cofx)))
 
 (handlers/register-handler-fx
  :group/send-new-sym-key
