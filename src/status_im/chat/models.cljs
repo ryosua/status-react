@@ -101,10 +101,11 @@
   (letfn [(remove-transport-fx [chat-id cofx]
             (when (multi-user-chat? chat-id cofx)
               (remove-transport chat-id cofx)))]
-    (handlers-macro/merge-fx cofx
-      (remove-transport-fx chat-id)
-      (deactivate-chat chat-id)
-      (clear-history chat-id))))
+    (handlers-macro/merge-fx
+     cofx
+     (remove-transport-fx chat-id)
+     (deactivate-chat chat-id)
+     (clear-history chat-id))))
 
 (defn bot-only-chat? [db chat-id]
   (let [{:keys [group-chat contacts]} (get-in db [:chats chat-id])]

@@ -1,5 +1,5 @@
 (ns ^{:doc "Group chat API"}
-  status-im.transport.message.v1.group-chat
+ status-im.transport.message.v1.group-chat
   (:require [re-frame.core :as re-frame]
             [status-im.utils.handlers-macro :as handlers-macro]
             [status-im.transport.message.core :as message]
@@ -44,11 +44,9 @@
                                                                                       :sym-key-id sym-key-id
                                                                                       :message    message}]))}}))
 
-
 (defn- init-chat-if-new [chat-id cofx]
   (if (nil? (get-in cofx [:db :transport/chats chat-id]))
     (protocol/init-chat chat-id cofx)))
-
 
 (defrecord GroupAdminUpdate [chat-name participants]
   message/StatusMessage
@@ -62,5 +60,5 @@
   (send [this chat-id cofx]
     (protocol/send {:chat-id       chat-id
                     :payload       this
-                    :success-event [::unsubscribe-from-chat chat-id]}
+                    :success-event [:group/unsubscribe-from-chat chat-id]}
                    cofx)))

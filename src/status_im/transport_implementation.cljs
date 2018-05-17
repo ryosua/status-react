@@ -19,7 +19,7 @@
 (extend-type transport.contact/ContactRequest
   message/StatusMessage
   (receive [this chat-id signature cofx]
-      (contacts/receive-contact-request signature this cofx)))
+    (contacts/receive-contact-request signature this cofx)))
 
 (extend-type transport.contact/ContactRequestConfirmed
   message/StatusMessage

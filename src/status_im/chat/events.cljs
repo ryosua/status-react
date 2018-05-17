@@ -322,7 +322,6 @@
  (fn [cofx [chat]]
    (models/upsert-chat chat cofx)))
 
-
 (defn remove-chat-and-navigate-home [cofx [chat-id]]
   (handlers-macro/merge-fx cofx
                            (models/remove-chat chat-id)

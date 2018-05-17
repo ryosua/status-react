@@ -52,7 +52,7 @@
             (handlers-macro/merge-fx cofx
                                      (models.message/receive
                                       (models.message/system-message chat-id random-id now
-                                                                     (prepare-system-message  admin-name
+                                                                     (prepare-system-message admin-name
                                                                                              added
                                                                                              removed
                                                                                              (:contacts/contacts db))))

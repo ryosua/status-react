@@ -150,18 +150,18 @@
     (testing "it removes it from transport if it's a public chat"
       (let [actual (chat/remove-chat chat-id
                                      (update-in
-                                              cofx
-                                              [:db :chats chat-id]
-                                              assoc
-                                              :group-chat true
-                                              :public? true))]
+                                      cofx
+                                      [:db :chats chat-id]
+                                      assoc
+                                      :group-chat true
+                                      :public? true))]
         (is (not (get-in actual [:db :transport/chats chat-id])))))
     (testing "it sends a leave group request if it's a group-chat"
       (let [actual (chat/remove-chat chat-id
                                      (assoc-in
-                                              cofx
-                                              [:db :chats chat-id :group-chat]
-                                              true))]
+                                      cofx
+                                      [:db :chats chat-id :group-chat]
+                                      true))]
         (is (:shh/post  actual))
         (testing "it does not remove transport, only after send is successful"
           (is (get-in actual [:db :transport/chats chat-id])))))
