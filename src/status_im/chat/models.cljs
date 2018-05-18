@@ -97,6 +97,12 @@
              :data-store/tx [(chats-store/deactivate-chat-tx chat-id now)]}
             [:db :chats chat-id :is-active] false))
 
+;; TODO: There's a race condition here, as the removal of the filter (async)
+;; is done at the same time as the removal of the chat, so a message
+;; might come between and restore the chat. Multiple way to handle this
+;; (remove chat only after the filter has been removed, probably the safest,
+;; flag the chat to ignore new messages, change receive method for public/group chats)
+;; For now to keep the code simplier and avoid significant changes, best to leave as it is.
 (defn remove-chat [chat-id {:keys [db now] :as cofx}]
   (letfn [(remove-transport-fx [chat-id cofx]
             (when (multi-user-chat? chat-id cofx)

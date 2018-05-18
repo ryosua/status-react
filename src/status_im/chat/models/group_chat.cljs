@@ -66,7 +66,9 @@
   (let [me                       (:current-public-key db)
         participant-leaving-name (or (get-in db [:contacts/contacts signature :name])
                                      signature)]
-    (when (get-in db [:chats chat-id]) ;; chat is present
+    (when (and
+           (not= signature me)
+           (get-in db [:chats chat-id])) ;; chat is present
       (handlers-macro/merge-fx cofx
                                (models.message/receive
                                 (models.message/system-message chat-id random-id now
