@@ -4,8 +4,8 @@
 (defn receive-seen
   [chat-id sender {:keys [message-ids js-obj]} {:keys [db]}]
   (merge
-   {:confirm-message-processed {:web3   (:web3 db)
-                                :js-obj js-obj}}
+   {:confirm-message-processed [{:web3   (:web3 db)
+                                 :js-obj js-obj}]}
    (when-let [seen-messages-ids (-> (get-in db [:chats chat-id :messages])
                                     (select-keys message-ids)
                                     keys)]

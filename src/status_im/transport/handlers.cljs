@@ -163,7 +163,8 @@
 
 (re-frame/reg-fx
  :confirm-message-processed
- (fn [{:keys [web3 js-obj]}]
-   (.. web3
-       -shh
-       (confirmMessagesProcessed #js [js-obj] (fn [_ _])))))
+ (fn [messages]
+   (doseq [{:keys [web3 js-obj]} messages]
+     (.. web3
+         -shh
+         (confirmMessagesProcessed #js [js-obj] (fn [_ _]))))))
