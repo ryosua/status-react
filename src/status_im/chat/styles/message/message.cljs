@@ -161,6 +161,25 @@
    :padding-right    28
    :background-color styles/color-white})
 
+(def network-mismatch-view
+  {:flex-direction :row})
+
+(defstyle network-mismatch-icon-view
+  {:ios         {:margin-top 2}
+   :android     {:margin-top 3}
+   :margin-left 4})
+
+(def network-mismatch-icon
+  {:color  colors/red
+   :width  15
+   :height 15})
+
+(def network-mismatch-text
+  {:font-size   12
+   :color       colors/red
+   :margin-top  2
+   :margin-left 4})
+
 (def command-request-from-text
   (merge style-sub-text {:margin-bottom 2}))
 

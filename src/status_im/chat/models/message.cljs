@@ -247,7 +247,8 @@
     request-command :command
     :keys           [prefill prefillBotDb]
     :as             request}
-   {:keys [params command handler-data content-type]}]
+   {:keys [params command handler-data content-type]}
+   network]
   (let [content (if request
                   {:request-command     request-command
                    ;; TODO janherich this is technically not correct, but works for now
@@ -255,7 +256,9 @@
                    :params              (assoc request-params :bot-db (:bot-db params))
                    :prefill             prefill
                    :prefill-bot-db      prefillBotDb}
-                  {:params  params})
+                  {:params  (cond-> params
+                              (= (:name command) "send")
+                              (assoc :network network))})
         content' (assoc content
                         :command               (:name command)
                         :handler-data          handler-data
@@ -284,13 +287,13 @@
                   (vector :chat-received-message/add))})
 
 (defn send-command
-  [{{:keys [current-public-key chats] :as db} :db :keys [now] :as cofx} params]
+  [{{:keys [current-public-key chats network] :as db} :db :keys [now] :as cofx} params]
   (let [{{:keys [handler-data to-message command] :as content} :command chat-id :chat-id} params
         ;; We send commands to deleted chats as well, i.e. signed later transactions
         chat    (or (get chats chat-id) {:chat-id chat-id})
         request (:request handler-data)]
     (handlers-macro/merge-fx cofx
-                             (upsert-and-send (prepare-command-message current-public-key chat now request content))
+                             (upsert-and-send (prepare-command-message current-public-key chat now request content network))
                              (add-console-responses command handler-data)
                              (requests-events/request-answered chat-id to-message))))
 

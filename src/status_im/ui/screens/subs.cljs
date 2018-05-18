@@ -1,5 +1,6 @@
 (ns status-im.ui.screens.subs
   (:require [re-frame.core :refer [reg-sub subscribe]]
+            [clojure.string :as string]
             status-im.chat.subs
             status-im.commands.subs
             status-im.ui.screens.accounts.subs
@@ -35,6 +36,13 @@
          :<- [:get-current-account]
          (fn [current-account]
            (get (:networks current-account) (:network current-account))))
+
+(reg-sub :network-name
+         :<- [:network]
+         (fn [network]
+           (-> network
+               (string/split "_")
+               first)))
 
 (reg-sub :sync-state :sync-state)
 (reg-sub :network-status :network-status)

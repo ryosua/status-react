@@ -2,6 +2,7 @@
   (:require-macros [status-im.utils.views :refer [defview letsubs]])
   (:require [re-frame.core :as re-frame]
             [reagent.core :as reagent]
+            [status-im.chat.views.message.network-mismatch :as network-mismatch]
             [status-im.ui.components.react :as react]
             [status-im.ui.components.animation :as animation]
             [status-im.ui.components.list-selection :as list-selection]
@@ -60,9 +61,16 @@
 
 (defview message-content-command
   [{:keys [content params] :as message}]
-  (letsubs [command [:get-command (:command-ref content)]]
+  (letsubs [command [:get-command (:command-ref content)]
+            network [:network-name]]
     (let [preview (:preview content)
-          {:keys [color] icon-path :icon} command]
+          {:keys [color] icon-path :icon} command
+          content-params (:params content)
+          send-network (-> content-params
+                           :network
+                           (string/split "_")
+                           first)
+          network-mismatch? (and (seq send-network) (not= network send-network))]
       [react/view style/content-command-view
        (when color
          [react/view style/command-container
@@ -75,7 +83,8 @@
           [react/icon icon-path style/command-image]])
        (if (:markup preview)
          ;; Markup was defined for command in jail, generate hiccup and render it
-         (commands.utils/generate-hiccup (:markup preview))
+         (cond-> (commands.utils/generate-hiccup (:markup preview))
+           network-mismatch? (conj [network-mismatch/view send-network]))
          ;; Display preview if it's defined (as a string), in worst case, render params
          [react/text {:style style/command-text
                       :font  :default}
