@@ -338,7 +338,8 @@
              (callback))))))))
 
 (defn message-container [message & children]
-  (if (:appearing? message)
+  #_(:appearing? message)
+  (if false
     (let [layout-height (reagent/atom 0)
           anim-value    (animation/create-value 1)
           anim-callback #(re-frame/dispatch [:message-appeared message])
