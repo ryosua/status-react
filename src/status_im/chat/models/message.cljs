@@ -92,7 +92,8 @@
                                                                         (not (= constants/system from)))))))
 
 (defn confirm-messages-processed [js-obj {{:keys [web3]} :db}]
-  {:confirm-message-processed {:web3  web3 :js-obj js-obj}})
+  {:confirm-message-processed {:web3   web3
+                               :js-obj js-obj}})
 
 (defn receive
   [{:keys [chat-id message-id js-obj] :as message} {:keys [now] :as cofx}]
