@@ -162,9 +162,14 @@
        fx))))
 
 (re-frame/reg-fx
+ ;; TODO(rasom): confirmMessagesProcessed should be called after :data-store/tx
+ ;; effect, so this effect should be rewritten/removed
  :confirm-message-processed
  (fn [messages]
-   (doseq [{:keys [web3 js-obj]} messages]
+   (let [{:keys [web3]} (first messages)
+         js-messages (->> messages
+                          (map :js-obj)
+                          (apply array))]
      (.. web3
          -shh
-         (confirmMessagesProcessed #js [js-obj] (fn [_ _]))))))
+         (confirmMessagesProcessed js-messages (fn [_ _]))))))
